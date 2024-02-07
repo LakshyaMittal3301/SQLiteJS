@@ -1,9 +1,36 @@
 import { open } from "fs/promises";
 import BTreePage from "./BTreePage.js";
-import { table } from "console";
+import { rootCertificates } from "tls";
 
 const databaseFilePath = process.argv[2];
 const command = process.argv[3];
+
+class SchemaTableEntry{
+	type;
+	name;
+	tbl_name;
+	rootpage;
+	sql;
+
+	constructor(valueArray){
+		this.type = valueArray[0];
+		this.name = valueArray[1];
+		this.tbl_name = valueArray[2];
+		this.rootpage = valueArray[3];
+		this.sql = valueArray[4];
+	}
+};
+
+class SchemaTable{
+	entries;
+
+	constructor(cellArray){
+		this.entries = [];
+		for(const cell of cellArray){
+			this.entries.push(new SchemaTableEntry(cell.values));
+		}
+	}
+};
 
 if (command === ".dbinfo") {
 
@@ -72,6 +99,65 @@ else if(command === ".tables"){
 	console.log(tableNames.join(' '));
 
 }
+else if(command.startsWith('SELECT')){
+	const databaseFileHandler = await open(databaseFilePath, "r");
+
+	let buffer = Buffer.alloc(100);
+
+	await databaseFileHandler.read({
+		length: 100,
+		position: 0,
+		buffer,
+	});
+
+	const pageSize = buffer.readUInt16BE(16);
+
+	buffer = Buffer.alloc(pageSize);
+
+	await databaseFileHandler.read({
+		length: pageSize,
+		position: 0,
+		buffer
+	});
+
+	let firstPage = new BTreePage(buffer, true);
+	firstPage.readBTreePage();
+
+	let commandArray = command.split(' ');
+	let tableName = commandArray[commandArray.length - 1];
+
+	let schemaTable = new SchemaTable(firstPage.cells);
+
+	let tableRootpage = null;
+
+	for(const entry of schemaTable.entries){
+		if(entry.tbl_name === tableName){
+			tableRootpage = entry.rootpage;
+			break;
+		}
+	}
+
+	if(!tableRootpage){
+		console.log('Table not found');
+		
+	}
+	else{
+
+		buffer = Buffer.alloc(pageSize);
+		
+		await databaseFileHandler.read({
+			length: pageSize,
+			position: (tableRootpage - 1) * (pageSize),
+			buffer
+		});
+		
+		let tablePage = new BTreePage(buffer, false);
+		tablePage.readBTreePage();
+		
+		console.log(tablePage.numOfCells);
+	}
+
+}
 else {
-	throw `Unknown command ${command}`;
+	console.log(`Unknown command ${command}`);
 }
