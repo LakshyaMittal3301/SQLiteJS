@@ -99,7 +99,7 @@ else if(command === ".tables"){
 	console.log(tableNames.join(' '));
 
 }
-else if(command.startsWith('SELECT')){
+else if(command.toLowerCase().startsWith('select')){
 	const databaseFileHandler = await open(databaseFilePath, "r");
 
 	let buffer = Buffer.alloc(100);
