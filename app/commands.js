@@ -14,7 +14,7 @@ function handleTablesCommand(database){
 }
 
 async function handleSelectCommand(argsArray, database){
-	let columnName = argsArray[0];
+	let columnNames = getColumnNames(argsArray);
 	let tableName = argsArray[argsArray.length - 1];
 	let schemaTableEntry = null;
 	
@@ -31,18 +31,43 @@ async function handleSelectCommand(argsArray, database){
 	}
 	
 	await database.readPageWithRootPageNumber(schemaTableEntry.rootpage).then((page) => {
-		if(columnName == "count(*)"){
+		if(columnNames[0] == "count(*)"){
 			console.log(page.numOfCells);
 		}else{
-			let columnIdx = schemaTableEntry.columnNames.indexOf(columnName);
-			let columnValues = [];
-			for(const row of page.cells){
-				columnValues.push(row.values[columnIdx]);
-			}
-			for(const colVal of columnValues) console.log(colVal);
-		} 
-
+            let columnIdxs = [];
+            for(const columnName of columnNames){
+                columnIdxs.push(schemaTableEntry.columnNames.indexOf(columnName));
+            }
+            let columnValues = getColumnValues(columnIdxs, page);
+            for(const rowValues of columnValues){
+                console.log(rowValues.join('|'));
+            }
+        } 
+        
 	})
+}
+
+function getColumnValues(columnIdxs, page){
+    
+    let columnValues = [];
+    for(const row of page.cells){
+        let rowValues = [];
+        for(const columnIdx of columnIdxs){
+            rowValues.push(row.values[columnIdx]);
+        }
+        columnValues.push(rowValues);
+    }
+    return columnValues;
+}
+
+function getColumnNames(argsArray){
+    let columnNames = [];
+    for(const arg of argsArray){
+        if(arg === 'from') break;
+        if(arg.endsWith(',')) columnNames.push(arg.slice(0, arg.length - 1));
+        else columnNames.push(arg);
+    }
+    return columnNames;
 
 }
 
