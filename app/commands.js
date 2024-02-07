@@ -1,3 +1,5 @@
+import QueryParser from "./QueryParser.js";
+
 function handleDBInfoCommand(database){
 	console.log(`database page size: ${database.pageSize}`);
 	console.log(`number of tables: ${database.firstPage.numOfCells}`);
@@ -13,9 +15,9 @@ function handleTablesCommand(database){
 	console.log(tableNames.join(' '));
 }
 
-async function handleSelectCommand(argsArray, database){
-	let columnNames = getColumnNames(argsArray);
-	let tableName = argsArray[argsArray.length - 1];
+async function handleSelectCommand(queryObj, database){
+	let columnNames = queryObj.selectColumns;
+	let tableName = queryObj.fromTableName;
 	let schemaTableEntry = null;
 	
 	for(const entry of database.schemaTable.entries){
@@ -33,7 +35,7 @@ async function handleSelectCommand(argsArray, database){
 	await database.readPageWithRootPageNumber(schemaTableEntry.rootpage).then((page) => {
 		if(columnNames[0] == "count(*)"){
 			console.log(page.numOfCells);
-		}else{
+		}else if(!queryObj.hasWhere){
             let columnIdxs = [];
             for(const columnName of columnNames){
                 columnIdxs.push(schemaTableEntry.columnNames.indexOf(columnName));
@@ -42,15 +44,29 @@ async function handleSelectCommand(argsArray, database){
             for(const rowValues of columnValues){
                 console.log(rowValues.join('|'));
             }
-        } 
+        } else if(queryObj.hasWhere){
+            let columnIdxs = [];
+            let whereColumnIdx = schemaTableEntry.columnNames.indexOf(queryObj.whereColumn);
+            for(const columnName of columnNames){
+                columnIdxs.push(schemaTableEntry.columnNames.indexOf(columnName));
+            }
+            let columnValues = getColumnValues(columnIdxs, page, whereColumnIdx, queryObj.whereValue);
+            for(const rowValues of columnValues){
+                console.log(rowValues.join('|'));
+            }
+        } else{
+            console.log(`Problem Problem`);
+        }
         
 	})
 }
 
-function getColumnValues(columnIdxs, page){
+function getColumnValues(columnIdxs, page, whereColumnIdx = null, whereColumnValue){
     
     let columnValues = [];
     for(const row of page.cells){
+        if(whereColumnIdx !== null && row.values[whereColumnIdx] !== whereColumnValue) continue;
+
         let rowValues = [];
         for(const columnIdx of columnIdxs){
             rowValues.push(row.values[columnIdx]);
@@ -60,20 +76,9 @@ function getColumnValues(columnIdxs, page){
     return columnValues;
 }
 
-function getColumnNames(argsArray){
-    let columnNames = [];
-    for(const arg of argsArray){
-        if(arg === 'from') break;
-        if(arg.endsWith(',')) columnNames.push(arg.slice(0, arg.length - 1));
-        else columnNames.push(arg);
-    }
-    return columnNames;
-
-}
-
 export async function handleQuery(query, database){
-	let queryArray = query.toLowerCase().split(' ');
-	let command = queryArray[0];
+	let queryObj = new QueryParser(query);
+	let command = queryObj.command;
 
 	switch(command){
 		case ".dbinfo":
@@ -83,7 +88,7 @@ export async function handleQuery(query, database){
 			handleTablesCommand(database);
 			break;
 		case "select":
-			await handleSelectCommand(queryArray.slice(1), database);
+			await handleSelectCommand(queryObj, database);
 			break;
 		default:
 			console.log(`Unknown command: ${command}`);
