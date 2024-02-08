@@ -34,7 +34,7 @@ export default class DataBase{
             this.schemaTable = new SchemaTable(this.firstPage.cells);
 			
 		} catch (err){
-            console.log(`page size: ${this.pageSize}`);
+            console.log(`page size: ${this.pageSize}, err`);
 			console.log(`Error Initializing DB: ${err}`);
 		} finally{
 			await databaseFileHandler?.close();
