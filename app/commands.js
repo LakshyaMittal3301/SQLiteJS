@@ -48,22 +48,6 @@ async function handleSelectCommand(queryObj, database){
         console.log(rowValues.join('|'));
     }
 
-
-	// await database.readPageWithPageNumber(schemaTableEntry.rootpage).then((page) => {
-	// 	if(columnNames[0] == "count(*)"){
-	// 		console.log(page.numOfCells);
-	// 	} else{
-    //         let columnIdxs = [];
-    //         let whereColumnIdx = schemaTableEntry.columnNames.indexOf(queryObj.whereColumn);
-    //         for(const columnName of columnNames){
-    //             columnIdxs.push(schemaTableEntry.columnNames.indexOf(columnName));
-    //         }
-    //         let columnValues = getColumnValues(columnIdxs, page, whereColumnIdx, queryObj.whereValue);
-    //         for(const rowValues of columnValues){
-    //             console.log(rowValues.join('|'));
-    //         }
-    //     }
-	// })
 }
 
 export async function handleQuery(query, database){

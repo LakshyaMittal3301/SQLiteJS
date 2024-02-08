@@ -125,9 +125,7 @@ export default class DataBase{
             if(schemaTableEntry === null){
                 throw new Error(`Cannot find Schema Table Entry for the table name: ${tableName}`);
             }
-            
-            console.log(`SQL for the given table: ${schemaTableEntry.sql}`);
-            
+                        
             await this.dfs(schemaTableEntry.rootpage);
             return this.tableValues;
         }
