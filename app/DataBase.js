@@ -113,7 +113,6 @@ export default class DataBase{
 
     async readTableValues(tableName){
         this.tableValues = [];
-
         try{
             let schemaTableEntry = null;
             for(const entry of this.schemaTable.entries){
@@ -122,11 +121,13 @@ export default class DataBase{
                     break;
                 }
             }
-
+            
             if(schemaTableEntry === null){
                 throw new Error(`Cannot find Schema Table Entry for the table name: ${tableName}`);
             }
-
+            
+            console.log(`SQL for the given table: ${schemaTableEntry.sql}`);
+            
             await this.dfs(schemaTableEntry.rootpage);
             return this.tableValues;
         }

@@ -133,9 +133,17 @@ class BTreeTableLeafCell extends BufferReader{
             bytestoRead -= serialTypeObj.bytesRead;
         }
 
+        let i = 0;
         for(const serialType of this.serialTypes){
             let value;
-            if(serialType === 0) value = null;
+            if(serialType === 0){
+                if(i == 0) {
+                    value = this.rowid;
+                }
+                else {
+                    value = null;
+                }
+            } 
             else if(serialType == 1){
                 value = super.readBufferByte();
             }
@@ -150,6 +158,7 @@ class BTreeTableLeafCell extends BufferReader{
                 value = `Not Implemented, serialType is : ${serialType}`;
             }
             this.values.push(value);
+            i++;
         }
     }
 
