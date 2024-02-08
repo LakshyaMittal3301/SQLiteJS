@@ -30,11 +30,11 @@ export default class DataBase{
 				position: 0,
 				buffer
 			});
-            // console.log(`page size: ${this.pageSize}`);
 			this.firstPage = new BTreePage(buffer, true);
             this.schemaTable = new SchemaTable(this.firstPage.cells);
 			
 		} catch (err){
+            console.log(`page size: ${this.pageSize}`);
 			console.log(`Error Initializing DB: ${err}`);
 		} finally{
 			await databaseFileHandler?.close();
