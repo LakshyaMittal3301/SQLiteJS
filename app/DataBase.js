@@ -32,8 +32,7 @@ export default class DataBase{
 			});
 
 			this.firstPage = new BTreePage(buffer, true);
-            this.schemaTable = new SchemaTable(this.firstPage.cells);
-			
+            this.schemaTable = new SchemaTable(this.firstPage.cells);			
 		} catch (err){
 			console.log(`Error Initializing DB: ${err}`);
 		} finally{
@@ -125,7 +124,6 @@ export default class DataBase{
             if(schemaTableEntry === null){
                 throw new Error(`Cannot find Schema Table Entry for the table name: ${tableName}`);
             }
-                        
             await this.dfs(schemaTableEntry.rootpage);
             return this.tableValues;
         }
@@ -138,6 +136,8 @@ export default class DataBase{
         const page = await this.readPageWithPageNumber(pageNum);
         if(page.isLeaf){
             for(const leafCell of page.cells){
+                let row = leafCell.values;
+                if(this.tableColumnNames[0] === 'id') row[0] = leafCell.rowid;
                 this.tableValues.push(leafCell.values);
             }
             return;

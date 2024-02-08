@@ -15,6 +15,15 @@ class SchemaTableEntry{
 		const matches = this.sql.match(/\(([^)]+)\)/g)[0].slice(1, -1).split(',');
         this.columnNames = matches.map(str => str.trim().split(' ')[0]);
     }
+
+	// toString(){
+	// 	let str = "Schema Table Entry:\n";
+	// 	for(const key in this){
+	// 		str += `\t\tKey: ${key}, Value: ${this[key]}\n`;
+	// 	}
+	// 	return str;
+
+	// }
 };
 
 export default class SchemaTable{
@@ -26,4 +35,12 @@ export default class SchemaTable{
 			this.entries.push(new SchemaTableEntry(cell.values));
 		}
 	}
+
+	// toString(){
+	// 	let str = "Schema Table:\n";
+	// 	for(const entry in this.entries){
+	// 		str += `\t${entry}\n`;
+	// 	}
+	// 	return str;
+	// }
 };

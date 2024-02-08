@@ -19,6 +19,12 @@ export default class BufferReader{
 		return bytes;
 	}
 
+    readBuffer3Bytes(){
+        let bytes = this.readBuffer2Bytes();
+        bytes = (bytes << 8) | this.readBufferByte();
+        return bytes;
+    }
+
 	readBuffer4Bytes(){
 		let bytes = this.buffer.readUInt32BE(this.cursor);
 		this.cursor += 4;
@@ -41,7 +47,8 @@ export default class BufferReader{
         do {
             byte = this.readBufferByte();;
             bytesRead++;
-            result |= (byte & 0x7f) << shift;
+            result <<= shift;
+            result |= (byte & 0x7f);
             shift += 7;
         } while (byte & 0x80);
         
