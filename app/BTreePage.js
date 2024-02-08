@@ -1,4 +1,6 @@
-export default class BTreePage{
+import BufferReader from "./BufferReader.js";
+
+export default class BTreePage extends BufferReader{
 	// Is it the first page
     isFirstPage;
 
@@ -11,6 +13,7 @@ export default class BTreePage{
 	numOfCells;
 	startOfCellArea;
 	fragmentedFreeBytes;
+    rightMostPointer;
 
 	// Cell Pointer Array
 	cellPointerArray;
@@ -18,13 +21,9 @@ export default class BTreePage{
 	// List of cells
 	cells;
 
-	buffer;
-	cursor;
 	constructor(buffer, isFirstPage = false){
+        super(buffer);
 		this.isFirstPage = isFirstPage;
-
-        this.buffer = buffer;
-		this.cursor = 0;
 
 		this.isInterior = false;
 		this.isLeaf = false;
@@ -39,17 +38,19 @@ export default class BTreePage{
 	}
 
 	readBTreePage(){
-        if(this.isFirstPage) this.cursor += 100;
+        if(this.isFirstPage) super.moveCursorBy(100);
 		this.readBTreePageHeader();
 		this.readCellPointerArray();
 		for(let cellNum = 0; cellNum < this.numOfCells; cellNum++){
 			if(this.isTable && this.isLeaf) this.cells.push(this.readTableLeafCell(this.cellPointerArray[cellNum]));
+            else if(this.isTable && this.isInterior) this.cells.push(this.readTableInteriorCell(this.cellPointerArray[cellNum]));
 		}
 
 	}
 
 	readBTreePageHeader(){
-		switch(this.readBufferByte()){
+		let pageType = super.readBufferByte();
+        switch(pageType){
 			case 0x02:
 				this.isInterior = true;
 				this.isIndex = true;
@@ -67,78 +68,46 @@ export default class BTreePage{
 				this.isTable = true;
 				break;
 			default:
-				console.log(`Error in reading page type: ${this.buffer[this.cursor]}`);
+				console.log(`Error in reading page type: ${pageType}`);
 		}
 
-		this.freeblockStart = this.readBuffer2Bytes();
+		this.freeblockStart = super.readBuffer2Bytes();
 	
-		this.numOfCells = this.readBuffer2Bytes();
+		this.numOfCells = super.readBuffer2Bytes();
 	
-		this.startOfCellArea = this.readBuffer2Bytes();
+		this.startOfCellArea = super.readBuffer2Bytes();
 		if(this.startOfCellArea == 0) this.startOfCellArea = 65536;
 
-		this.fragmentedFreeBytes = this.readBufferByte();
+		this.fragmentedFreeBytes = super.readBufferByte();
 
-		if(this.isInterior) this.rightMostPointer = this.readBuffer4Bytes();
+		if(this.isInterior) this.rightMostPointer = super.readBuffer4Bytes();
 
 	}
 
 	readCellPointerArray(){
 		for(let i = 0; i < this.numOfCells; i++){
-			this.cellPointerArray.push(this.readBuffer2Bytes());
+			this.cellPointerArray.push(super.readBuffer2Bytes());
 		}
 	}
 
 	readTableLeafCell(startOfCell){
 		this.cursor = startOfCell;
-		let payloadBytes = this.readVarInt();
-		let rowid = this.readVarInt();
-		let payloadRecordFormat = this.readBufferCustomBytes(payloadBytes);
-		return new BTreeCell(payloadBytes, rowid, payloadRecordFormat);
+		let payloadBytes = super.readVarInt().result;
+		let rowid = super.readVarInt().result;
+		let payloadRecordFormat = super.readBufferCustomBytes(payloadBytes);
+		return new BTreeTableLeafCell(payloadBytes, rowid, payloadRecordFormat);
 	}
 
-	readBufferByte(){
-		let byte = this.buffer[this.cursor];
-		this.cursor += 1;
-		return byte;
-	}
-
-	readBuffer2Bytes(){
-		let bytes = this.buffer.readUInt16BE(this.cursor);
-		this.cursor += 2;
-		return bytes;
-	}
-
-	readBuffer4Bytes(){
-		let bytes = this.buffer.readUInt32BE(this.cursor);
-		this.cursor += 4;
-		return bytes;
-	}
-	
-    // This method returns buffer, unlike other read methods which return an INT;
-	readBufferCustomBytes(numOfBytes){
-		let bytes = this.buffer.subarray(this.cursor, this.cursor + numOfBytes);
-		this.cursor += numOfBytes;
-		return bytes;
-	}
-
-	readVarInt() {
-		let result = 0;
-		let shift = 0;
-		let byte;
-	
-		do {
-			byte = this.readBufferByte();;
-			result |= (byte & 0x7f) << shift;
-			shift += 7;
-		} while (byte & 0x80);
-		
-		return result;
-	}
+    readTableInteriorCell(startOfCell){
+        super.setCursorTo(startOfCell);
+        let leftChildPointer = super.readBuffer4Bytes();
+        let rowid = super.readVarInt().result;
+        return new BTreeTableInteriorCell(leftChildPointer, rowid);
+    }
 
 };
 
-class BTreeCell{
+class BTreeTableLeafCell extends BufferReader{
     payloadBytes;
     rowid;
     payload;
@@ -147,39 +116,35 @@ class BTreeCell{
     serialTypes;
     values;
 
-    buffer;
-    cursor;
-
     constructor(payloadBytes, rowid, payloadRecordFormat){
+        super(payloadRecordFormat);
         this.payloadBytes = payloadBytes;
         this.rowid = rowid;
-        this.buffer = payloadRecordFormat;
-        this.cursor = 0;
 
         this.serialTypes = [];
         this.values = [];
 
-        let headerSizeObj = this.readVarInt();
+        let headerSizeObj = super.readVarInt();
         this.headerBytes = headerSizeObj.result;
         let bytestoRead = this.headerBytes - headerSizeObj.bytesRead;
         while(bytestoRead){
-            let serialTypeObj = this.readVarInt();
+            let serialTypeObj = super.readVarInt();
             this.serialTypes.push(serialTypeObj.result);
             bytestoRead -= serialTypeObj.bytesRead;
         }
 
         for(const serialType of this.serialTypes){
             let value;
-            if(serialType == 0) value = 1;
+            if(serialType === 0) value = null;
             else if(serialType == 1){
-                value = this.readBufferByte();
+                value = super.readBufferByte();
             }
             else if(serialType >= 12 && serialType % 2 == 0){
                 let valueLength = (serialType - 12) / 12;
-                value = this.readBufferCustomBytes(valueLength).toString();
+                value = super.readBufferCustomBytes(valueLength).toString();
             }else if(serialType >= 13 && serialType % 2 != 0){
                 let valueLength = (serialType - 13) / 2;
-                value = this.readBufferCustomBytes(valueLength).toString();
+                value = super.readBufferCustomBytes(valueLength).toString();
             }
             else{
                 value = `Not Implemented, serialType is : ${serialType}`;
@@ -188,49 +153,17 @@ class BTreeCell{
         }
     }
 
-    readBufferByte(){
-		let byte = this.buffer[this.cursor];
-		this.cursor += 1;
-		return byte;
-	}
-
-	readBuffer2Bytes(){
-		let bytes = this.buffer.readUInt16BE(this.cursor);
-		this.cursor += 2;
-		return bytes;
-	}
-
-	readBuffer4Bytes(){
-		let bytes = this.buffer.readUInt32BE(this.cursor);
-		this.cursor += 4;
-		return bytes;
-	}
-	
-    // This method returns buffer, unlike other read methods which return an INT;
-	readBufferCustomBytes(numOfBytes){
-		let bytes = this.buffer.subarray(this.cursor, this.cursor + numOfBytes);
-		this.cursor += numOfBytes;
-		return bytes;
-	}
-    
-    readVarInt() {
-        let result = 0;
-        let shift = 0;
-        let byte;
-        let bytesRead = 0;
-    
-        do {
-            byte = this.readBufferByte();;
-            bytesRead++;
-            result |= (byte & 0x7f) << shift;
-            shift += 7;
-        } while (byte & 0x80);
-        
-        return {result, bytesRead};
-    }
-
     toString(){
         return `PayloadBytes: ${this.payloadBytes}, rowId: ${this.rowid}, Values: ${this.values}`;
     }
-
 };
+
+class BTreeTableInteriorCell{
+    leftChildPointer;
+    rowid;
+
+    constructor(leftChildPointer, rowid){
+        this.leftChildPointer = leftChildPointer;
+        this.rowid = rowid;    
+    }
+}

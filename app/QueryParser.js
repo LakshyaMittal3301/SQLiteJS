@@ -47,10 +47,16 @@ export default class QueryParser {
                 continue;    
             }
             if(fromSeen && whereSeen && equalSeen){
-                this.whereValue = queryArray[i].slice(1, -1);
+                if(queryArray[i].endsWith("'")){
+                    this.whereValue = queryArray[i].slice(1, -1);
+                }else{
+                    this.whereValue = queryArray[i++].slice(1);
+                    while(!queryArray[i].endsWith("'")) this.whereValue += " " + queryArray[i++];
+                    this.whereValue += " " + queryArray[i].slice(0, -1);
+                }
                 continue;
             }
-            console.log(`Error parsing SQL query: ${queryArray[i]} is sncountered`);
+            console.log(`Error parsing SQL query: ${queryArray[i]} is encountered`);
         }
     }
 

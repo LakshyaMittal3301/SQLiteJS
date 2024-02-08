@@ -16,64 +16,54 @@ function handleTablesCommand(database){
 }
 
 async function handleSelectCommand(queryObj, database){
-	let columnNames = queryObj.selectColumns;
-	let tableName = queryObj.fromTableName;
-	let schemaTableEntry = null;
-	
-	for(const entry of database.schemaTable.entries){
-		if(entry.tbl_name === tableName){
-			schemaTableEntry = entry;
-			break;
-		}
-	}
-	
-	if(schemaTableEntry === null){
-		console.log(`Could not find schemaTableEntry with table name: ${tableName}`);
-		return null;
-	}
-	
-	await database.readPageWithRootPageNumber(schemaTableEntry.rootpage).then((page) => {
-		if(columnNames[0] == "count(*)"){
-			console.log(page.numOfCells);
-		}else if(!queryObj.hasWhere){
-            let columnIdxs = [];
-            for(const columnName of columnNames){
-                columnIdxs.push(schemaTableEntry.columnNames.indexOf(columnName));
-            }
-            let columnValues = getColumnValues(columnIdxs, page);
-            for(const rowValues of columnValues){
-                console.log(rowValues.join('|'));
-            }
-        } else if(queryObj.hasWhere){
-            let columnIdxs = [];
-            let whereColumnIdx = schemaTableEntry.columnNames.indexOf(queryObj.whereColumn);
-            for(const columnName of columnNames){
-                columnIdxs.push(schemaTableEntry.columnNames.indexOf(columnName));
-            }
-            let columnValues = getColumnValues(columnIdxs, page, whereColumnIdx, queryObj.whereValue);
-            for(const rowValues of columnValues){
-                console.log(rowValues.join('|'));
-            }
-        } else{
-            console.log(`Problem Problem`);
-        }
-        
-	})
-}
+	let selectColumnNames = queryObj.selectColumns;
+    let tableName = queryObj.fromTableName;
 
-function getColumnValues(columnIdxs, page, whereColumnIdx = null, whereColumnValue){
-    
-    let columnValues = [];
-    for(const row of page.cells){
-        if(whereColumnIdx !== null && row.values[whereColumnIdx] !== whereColumnValue) continue;
+    let tableColumnNames = database.readTableColumnNames(tableName);
+    let tableValues = await database.readTableValues(tableName);
 
-        let rowValues = [];
-        for(const columnIdx of columnIdxs){
-            rowValues.push(row.values[columnIdx]);
-        }
-        columnValues.push(rowValues);
+    if(selectColumnNames[0] === 'count(*)'){
+        console.log(tableValues.length);
+        return;
     }
-    return columnValues;
+
+    let selectColumnIdxs = [];
+    let whereColumnIdx = tableColumnNames.indexOf(queryObj.whereColumn);
+    let whereColumnValue = queryObj.whereValue;
+    for(const columnName of selectColumnNames){
+        selectColumnIdxs.push(tableColumnNames.indexOf(columnName));
+    }
+
+    let filteredValues = [];
+    for(const row of tableValues){
+        if(row[whereColumnIdx] !== whereColumnValue) continue;
+        let filteredRow = [];
+        for(const columnIdx of selectColumnIdxs){
+            filteredRow.push(row[columnIdx]);
+        }
+        filteredValues.push(filteredRow);
+    }
+
+    for(const rowValues of filteredValues){
+        console.log(rowValues.join('|'));
+    }
+
+
+	// await database.readPageWithPageNumber(schemaTableEntry.rootpage).then((page) => {
+	// 	if(columnNames[0] == "count(*)"){
+	// 		console.log(page.numOfCells);
+	// 	} else{
+    //         let columnIdxs = [];
+    //         let whereColumnIdx = schemaTableEntry.columnNames.indexOf(queryObj.whereColumn);
+    //         for(const columnName of columnNames){
+    //             columnIdxs.push(schemaTableEntry.columnNames.indexOf(columnName));
+    //         }
+    //         let columnValues = getColumnValues(columnIdxs, page, whereColumnIdx, queryObj.whereValue);
+    //         for(const rowValues of columnValues){
+    //             console.log(rowValues.join('|'));
+    //         }
+    //     }
+	// })
 }
 
 export async function handleQuery(query, database){

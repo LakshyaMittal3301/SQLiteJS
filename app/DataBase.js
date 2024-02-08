@@ -8,6 +8,8 @@ export default class DataBase{
 	pageSize;
 	firstPage;
     schemaTable;
+    tableValues;
+    tableColumnNames;
 
 	constructor(databaseFilePath){
 		this.databaseFilePath = databaseFilePath;
@@ -63,7 +65,7 @@ export default class DataBase{
 		}
 	}
 	
-    async readPageWithRootPageNumber(rootPageNumber){
+    async readPageWithPageNumber(pageNumber){
         let databaseFileHandler;
 		let buffer;
 		try{
@@ -73,19 +75,79 @@ export default class DataBase{
 			
 			await databaseFileHandler.read({
 				length: this.pageSize,
-				position: (rootPageNumber - 1) * this.pageSize,
+				position: (pageNumber - 1) * this.pageSize,
 				buffer,
 			});
 
             return new BTreePage(buffer);
 
 		} catch(err){
-			console.log(`Error in reading page with rootnum: ${rootPageNumber}, Error: ${err}`);
+			console.log(`Error in reading page with rootnum: ${pageNumber}, Error: ${err}`);
 			throw err;
 		} finally {
 			await databaseFileHandler?.close();
 		}
 	}
     
+    readTableColumnNames(tableName){
+        try{
+            let schemaTableEntry = null;
+            for(const entry of this.schemaTable.entries){
+                if(entry.tbl_name === tableName){
+                    schemaTableEntry = entry;
+                    break;
+                }
+            }
+
+            if(schemaTableEntry === null){
+                throw new Error(`Cannot find Schema Table Entry for the table name: ${tableName}`);
+            }
+
+            this.tableColumnNames = schemaTableEntry.columnNames;
+            return this.tableColumnNames;
+        }
+        catch (err){
+            console.log(`Error raeding table column names: ${err}`);
+        }
+    }
+
+    async readTableValues(tableName){
+        this.tableValues = [];
+
+        try{
+            let schemaTableEntry = null;
+            for(const entry of this.schemaTable.entries){
+                if(entry.tbl_name === tableName){
+                    schemaTableEntry = entry;
+                    break;
+                }
+            }
+
+            if(schemaTableEntry === null){
+                throw new Error(`Cannot find Schema Table Entry for the table name: ${tableName}`);
+            }
+
+            await this.dfs(schemaTableEntry.rootpage);
+            return this.tableValues;
+        }
+        catch (err){
+            console.log(`Error raeding table values: ${err}`);
+        }
+    }
+
+    async dfs(pageNum){
+        const page = await this.readPageWithPageNumber(pageNum);
+        if(page.isLeaf){
+            for(const leafCell of page.cells){
+                this.tableValues.push(leafCell.values);
+            }
+            return;
+        } 
+
+        for(const interiorCell of page.cells){
+            await this.dfs(interiorCell.leftChildPointer);
+        }
+        await this.dfs(page.rightMostPointer);
+    }
 };
 
