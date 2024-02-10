@@ -190,7 +190,7 @@ export default class DataBase{
         if(page.isLeaf){
             for(const leafCell of page.cells){
                 let row = leafCell.values;
-                if(row[0] < columnValue) continue;
+                if(!row[0] || row[0] < columnValue) continue;
                 else if(row[0] === columnValue){
                     this.rowIds.push(row[1]);
                 }
