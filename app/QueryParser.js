@@ -2,9 +2,9 @@ export default class QueryParser {
     command;
     fromTableName;
     selectColumns;
+    hasWhere;
     whereColumn;
     whereValue;
-    hasWhere;
 
     constructor(query){
         let queryArray = query.split(' ');

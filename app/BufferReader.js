@@ -40,7 +40,7 @@ export default class BufferReader{
     
     readVarInt() {
         let result = 0;
-        let shift = 0;
+        let shift = 7;
         let byte;
         let bytesRead = 0;
     
@@ -49,9 +49,8 @@ export default class BufferReader{
             bytesRead++;
             result <<= shift;
             result |= (byte & 0x7f);
-            shift += 7;
         } while (byte & 0x80);
-        
+        if(bytesRead > 9) throw new Error(`Reading Var Int failed`);
         return {result, bytesRead};
     }
 

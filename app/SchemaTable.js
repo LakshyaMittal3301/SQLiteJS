@@ -16,14 +16,14 @@ class SchemaTableEntry{
         this.columnNames = matches.map(str => str.trim().split(' ')[0]);
     }
 
-	// toString(){
-	// 	let str = "Schema Table Entry:\n";
-	// 	for(const key in this){
-	// 		str += `\t\tKey: ${key}, Value: ${this[key]}\n`;
-	// 	}
-	// 	return str;
+	toString(){
+		let str = "Schema Table Entry:\n";
+		for(const key in this){
+			str += `\t\tKey: ${key}, Value: ${this[key]}\n`;
+		}
+		return str;
 
-	// }
+	}
 };
 
 export default class SchemaTable{
@@ -36,11 +36,11 @@ export default class SchemaTable{
 		}
 	}
 
-	// toString(){
-	// 	let str = "Schema Table:\n";
-	// 	for(const entry in this.entries){
-	// 		str += `\t${entry}\n`;
-	// 	}
-	// 	return str;
-	// }
+	toString(){
+		let str = "Schema Table:\n";
+		for(const entry of this.entries){
+			str += `\t${entry}\n`;
+		}
+		return str;
+	}
 };

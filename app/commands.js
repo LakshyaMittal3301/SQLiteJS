@@ -1,4 +1,5 @@
 import QueryParser from "./QueryParser.js";
+import SchemaTable from "./SchemaTable.js";
 
 function handleDBInfoCommand(database){
 	console.log(`database page size: ${database.pageSize}`);
@@ -16,36 +17,15 @@ function handleTablesCommand(database){
 }
 
 async function handleSelectCommand(queryObj, database){
-	let selectColumnNames = queryObj.selectColumns;
-    let tableName = queryObj.fromTableName;
 
-    let tableColumnNames = database.readTableColumnNames(tableName);
-    let tableValues = await database.readTableValues(tableName);
-
-    if(selectColumnNames[0] === 'count(*)'){
-        console.log(tableValues.length);
+    let result = await database.getData(queryObj);
+    if(queryObj.selectColumns[0] === 'count(*)'){
+        console.log(result);
         return;
     }
 
-    let selectColumnIdxs = [];
-    let whereColumnIdx = tableColumnNames.indexOf(queryObj.whereColumn);
-    let whereColumnValue = queryObj.whereValue;
-    for(const columnName of selectColumnNames){
-        selectColumnIdxs.push(tableColumnNames.indexOf(columnName));
-    }
-
-    let filteredValues = [];
-    for(const row of tableValues){
-        if(row[whereColumnIdx] !== whereColumnValue) continue;
-        let filteredRow = [];
-        for(const columnIdx of selectColumnIdxs){
-            filteredRow.push(row[columnIdx]);
-        }
-        filteredValues.push(filteredRow);
-    }
-
-    for(const rowValues of filteredValues){
-        console.log(rowValues.join('|'));
+    for(const row of result){
+        console.log(row.join('|'));
     }
 
 }
