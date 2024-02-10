@@ -112,6 +112,7 @@ export default class DataBase{
         let whereValue = queryObj.whereValue;
 
         if(this.indexTableExists(whereColumn)){
+            console.log('HERE');
             await this.readTableValuesWithIndex(whereColumn, whereValue);
             return this.getFilteredData(selectColumnNames);
         }
