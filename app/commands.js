@@ -17,7 +17,6 @@ function handleTablesCommand(database){
 }
 
 async function handleSelectCommand(queryObj, database){
-
     let result = await database.getData(queryObj);
     if(queryObj.selectColumns[0] === 'count(*)'){
         console.log(result);

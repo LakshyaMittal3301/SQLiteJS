@@ -112,11 +112,10 @@ export default class DataBase{
         let whereValue = queryObj.whereValue;
 
         if(this.indexTableExists(whereColumn)){
-            console.log('HERE');
             await this.readTableValuesWithIndex(whereColumn, whereValue);
             return this.getFilteredData(selectColumnNames);
         }
-
+        
         await this.readTableAllValues();
         return this.getFilteredData(selectColumnNames, whereColumn, whereValue);
 
@@ -176,7 +175,6 @@ export default class DataBase{
             }
 
             await this.dfsGetRowIds(schemaTableEntryForIndex.rootpage, columnValue);
-
             let schemaTableEntry = this.getSchemaEntryFromName(this.tableName);
             for(const rowId of this.rowIds){
                 await this.dfsGetValuesFromRowId(schemaTableEntry.rootpage, rowId);
@@ -200,12 +198,12 @@ export default class DataBase{
             }
             return;
         } 
-
+        
         let endFound = false;
-
+        
         for(const interiorCell of page.cells){
             let row = interiorCell.values;
-            if(row[0] < columnValue) continue;
+            if(!row[0] || row[0] < columnValue) continue;
             else if(row[0] === columnValue){
                 await this.dfsGetRowIds(interiorCell.leftChildPointer, columnValue);
                 this.rowIds.push(row[1]);
