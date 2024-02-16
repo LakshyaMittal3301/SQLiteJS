@@ -1,4 +1,4 @@
-## To run an SQL query
+# To run an SQL query
 
 '''
 ./your_sqlite3.sh superheroes.db "SELECT id, name FROM superheroes WHERE eye_color = 'Pink Eyes'"
