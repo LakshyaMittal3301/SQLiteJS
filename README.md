@@ -1,13 +1,13 @@
 # To run an SQL query
 
-'''
-./your_sqlite3.sh superheroes.db "SELECT id, name FROM superheroes WHERE eye_color = 'Pink Eyes'"
-'''
-Note: This section is for stages 2 and beyond.
-
 1. Ensure you have `node (16)` installed locally
 2. Run `./your_sqlite3.sh` to run your program, which is implemented in
    `app/main.js`.
+
+## Sample Query
+```
+./your_sqlite3.sh superheroes.db "SELECT id, name FROM superheroes WHERE eye_color = 'Pink Eyes'"
+```
 
 # Sample Databases
 There are 3 databases:
