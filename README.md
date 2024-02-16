@@ -6,7 +6,7 @@
 
 ## Sample Query
 ```
-./your_sqlite3.sh superheroes.db "SELECT id, name FROM superheroes WHERE eye_color = 'Pink Eyes'"
+./your_sqlite3.sh companies.db "SELECT id, name FROM companies WHERE country = 'eritrea'"
 ```
 
 # Sample Databases
